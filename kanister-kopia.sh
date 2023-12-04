@@ -4,7 +4,7 @@ if [ -z "$1" ]; then
     echo "profile not supplied" >&2
     exit 1
 fi
-PROFILE_JSON="$(echo $1 | base64 --decode)"
+PROFILE_JSON="$1"
 shift
 if [ -z "$1" ]; then
     echo "aws prefix not supplied" >&2
