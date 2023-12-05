@@ -46,7 +46,7 @@ _backup() {
         BLUEPRINT="$1"
     fi
     if [ "$2" != "" ]; then
-        NAME="$2"
+        WORKLOAD="$2"
     fi
     if [ "$3" != "" ]; then
         NAMESPACE="$3"
@@ -55,8 +55,8 @@ _backup() {
         echo "blueprint not supplied" >&2
         exit 1
     fi
-    if [ "$NAME" = "" ]; then
-        echo "name not supplied" >&2
+    if [ "$WORKLOAD" = "" ]; then
+        echo "workload not supplied" >&2
         exit 1
     fi
     _BLUEPRINT_NAME="$NAMESPACE.$BLUEPRINT"
@@ -66,13 +66,13 @@ _backup() {
     _BLUEPRINT_JSON="$(kubectl get blueprint "$_BLUEPRINT_NAME" -n "$NAMESPACE" -o json)"
     _KIND="$(echo "$BLUEPRINT_JSON" | jq -r '.actions.backup.kind' | tr '[:upper:]' '[:lower:]')"
     if [ "$_KIND" = "statefulset" ]; then
-        _STATEFULSET_ARG="--statefulset $NAME"
+        _STATEFULSET_ARG="--statefulset $WORKLOAD"
     elif [ "$_KIND" = "deployment" ]; then
-        _DEPLOYMENT_ARG="--deployment $NAME"
+        _DEPLOYMENT_ARG="--deployment $WORKLOAD"
     elif [ "$_KIND" = "daemonset" ]; then
-        _DAEMONSET_ARG="--daemonset $NAME"
+        _DAEMONSET_ARG="--daemonset $WORKLOAD"
     elif [ "$_KIND" = "replicaset" ]; then
-        _REPLICASET_ARG="--replicaset $NAME"
+        _REPLICASET_ARG="--replicaset $WORKLOAD"
     else
         echo "unknown kind: $_KIND" >&2
         exit 1
@@ -94,7 +94,7 @@ _restore() {
         BLUEPRINT="$1"
     fi
     if [ "$2" != "" ]; then
-        NAME="$2"
+        WORKLOAD="$2"
     fi
     if [ "$3" != "" ]; then
         FROM="$3"
@@ -106,8 +106,8 @@ _restore() {
         echo "blueprint not supplied" >&2
         exit 1
     fi
-    if [ "$NAME" = "" ]; then
-        echo "name not supplied" >&2
+    if [ "$WORKLOAD" = "" ]; then
+        echo "workload not supplied" >&2
         exit 1
     fi
     if [ "$FROM" = "" ]; then
@@ -121,13 +121,13 @@ _restore() {
     _BLUEPRINT_JSON="$(kubectl get blueprint "$_BLUEPRINT_NAME" -n "$NAMESPACE" -o json)"
     _KIND="$(echo "$BLUEPRINT_JSON" | jq -r '.actions.restore.kind' | tr '[:upper:]' '[:lower:]')"
     if [ "$_KIND" = "statefulset" ]; then
-        _STATEFULSET_ARG="--statefulset $NAME"
+        _STATEFULSET_ARG="--statefulset $WORKLOAD"
     elif [ "$_KIND" = "deployment" ]; then
-        _DEPLOYMENT_ARG="--deployment $NAME"
+        _DEPLOYMENT_ARG="--deployment $WORKLOAD"
     elif [ "$_KIND" = "daemonset" ]; then
-        _DAEMONSET_ARG="--daemonset $NAME"
+        _DAEMONSET_ARG="--daemonset $WORKLOAD"
     elif [ "$_KIND" = "replicaset" ]; then
-        _REPLICASET_ARG="--replicaset $NAME"
+        _REPLICASET_ARG="--replicaset $WORKLOAD"
     else
         echo "unknown kind: $_KIND" >&2
         exit 1
