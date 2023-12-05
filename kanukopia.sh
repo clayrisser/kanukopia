@@ -13,7 +13,7 @@ export TMPDIR="${TMPDIR:-/tmp}"
 if [ "$USER" = "" ]; then
     export USER="kopia"
 fi
-if [ "$HOME" = "" ]; then
+if [ "$HOME" = "" ] || [ "$HOME" = "/" ]; then
     export HOME="$TMPDIR/kopia"
 fi
 
