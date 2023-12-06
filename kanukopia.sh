@@ -7,6 +7,7 @@ fi
 if [ "$HOME" = "" ] || [ "$HOME" = "/" ]; then
     export HOME="$TMPDIR/kopia"
 fi
+KANISTER_NAMESPACE="${KANISTER_NAMESPACE:-kanister}"
 
 _kopia() {
     if [ -z "$PROFILE_JSON" ]; then
@@ -44,12 +45,15 @@ _backup() {
     PROFILE="${PROFILE:-kanister}"
     if [ "$1" != "" ]; then
         BLUEPRINT="$1"
+        shift
     fi
-    if [ "$2" != "" ]; then
-        WORKLOAD="$2"
+    if [ "$1" != "" ]; then
+        WORKLOAD="$1"
+        shift
     fi
-    if [ "$3" != "" ]; then
-        NAMESPACE="$3"
+    if [ "$1" != "" ]; then
+        NAMESPACE="$1"
+        shift
     fi
     if [ "$BLUEPRINT" = "" ]; then
         echo "blueprint not supplied" >&2
@@ -59,31 +63,35 @@ _backup() {
         echo "workload not supplied" >&2
         exit 1
     fi
-    _BLUEPRINT_NAME="$NAMESPACE.$BLUEPRINT"
-    if [ "$NAMESPACE" != "" ]; then
-        _NAMESPACE_ARG="--namespace $NAMESPACE"
+    if [ "$NAMESPACE" = "" ]; then
+        NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+        if [ "$NAMESPACE" = "" ]; then
+            NAMESPACE=default
+        fi
     fi
-    _BLUEPRINT_JSON="$(kubectl get blueprint "$_BLUEPRINT_NAME" -n "$NAMESPACE" -o json)"
-    _KIND="$(echo "$BLUEPRINT_JSON" | jq -r '.actions.backup.kind' | tr '[:upper:]' '[:lower:]')"
+    _BLUEPRINT_NAME="$NAMESPACE.$BLUEPRINT"
+    _NAMESPACE_ARG="--namespace $NAMESPACE"
+    _KIND="$(kubectl get blueprint "$BLUEPRINT" -n "$NAMESPACE" -o json | \
+        jq -r '.actions.backup.kind' | tr '[:upper:]' '[:lower:]')"
     if [ "$_KIND" = "statefulset" ]; then
-        _STATEFULSET_ARG="--statefulset $WORKLOAD"
+        _STATEFULSET_ARG="--statefulset $NAMESPACE/$WORKLOAD"
     elif [ "$_KIND" = "deployment" ]; then
-        _DEPLOYMENT_ARG="--deployment $WORKLOAD"
+        _DEPLOYMENT_ARG="--deployment $NAMESPACE/$WORKLOAD"
     elif [ "$_KIND" = "daemonset" ]; then
-        _DAEMONSET_ARG="--daemonset $WORKLOAD"
+        _DAEMONSET_ARG="--daemonset $NAMESPACE/$WORKLOAD"
     elif [ "$_KIND" = "replicaset" ]; then
-        _REPLICASET_ARG="--replicaset $WORKLOAD"
+        _REPLICASET_ARG="--replicaset $NAMESPACE/$WORKLOAD"
     else
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
     kanctl create actionset \
-        $_NAMESPACE_ARG \
+        --namespace "$KANISTER_NAMESPACE" \
+        --blueprint "$_BLUEPRINT_NAME" \
         $_STATEFULSET_ARG \
         $_DEPLOYMENT_ARG \
         $_DAEMONSET_ARG \
         $_REPLICASET_ARG \
-        --blueprint "$_BLUEPRINT_NAME" \
         --profile "$PROFILE" \
         --action backup "$@"
 }
@@ -92,15 +100,19 @@ _restore() {
     PROFILE="${PROFILE:-kanister}"
     if [ "$1" != "" ]; then
         BLUEPRINT="$1"
+        shift
     fi
-    if [ "$2" != "" ]; then
-        WORKLOAD="$2"
+    if [ "$1" != "" ]; then
+        WORKLOAD="$1"
+        shift
     fi
-    if [ "$3" != "" ]; then
-        FROM="$3"
+    if [ "$1" != "" ]; then
+        FROM="$1"
+        shift
     fi
-    if [ "$4" != "" ]; then
-        NAMESPACE="$4"
+    if [ "$1" != "" ]; then
+        NAMESPACE="$1"
+        shift
     fi
     if [ "$BLUEPRINT" = "" ]; then
         echo "blueprint not supplied" >&2
@@ -110,24 +122,24 @@ _restore() {
         echo "workload not supplied" >&2
         exit 1
     fi
-    if [ "$FROM" = "" ]; then
-        echo "from not supplied" >&2
-        exit 1
+    if [ "$NAMESPACE" = "" ]; then
+        NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+        if [ "$NAMESPACE" = "" ]; then
+            NAMESPACE=default
+        fi
     fi
     _BLUEPRINT_NAME="$NAMESPACE.$BLUEPRINT"
-    if [ "$NAMESPACE" != "" ]; then
-        _NAMESPACE_ARG="--namespace $NAMESPACE"
-    fi
-    _BLUEPRINT_JSON="$(kubectl get blueprint "$_BLUEPRINT_NAME" -n "$NAMESPACE" -o json)"
-    _KIND="$(echo "$BLUEPRINT_JSON" | jq -r '.actions.restore.kind' | tr '[:upper:]' '[:lower:]')"
+    _NAMESPACE_ARG="--namespace $NAMESPACE"
+    _KIND="$(kubectl get blueprint "$BLUEPRINT" -n "$NAMESPACE" -o json | \
+        jq -r '.actions.backup.kind' | tr '[:upper:]' '[:lower:]')"
     if [ "$_KIND" = "statefulset" ]; then
-        _STATEFULSET_ARG="--statefulset $WORKLOAD"
+        _STATEFULSET_ARG="--statefulset $NAMESPACE/$WORKLOAD"
     elif [ "$_KIND" = "deployment" ]; then
-        _DEPLOYMENT_ARG="--deployment $WORKLOAD"
+        _DEPLOYMENT_ARG="--deployment $NAMESPACE/$WORKLOAD"
     elif [ "$_KIND" = "daemonset" ]; then
-        _DAEMONSET_ARG="--daemonset $WORKLOAD"
+        _DAEMONSET_ARG="--daemonset $NAMESPACE/$WORKLOAD"
     elif [ "$_KIND" = "replicaset" ]; then
-        _REPLICASET_ARG="--replicaset $WORKLOAD"
+        _REPLICASET_ARG="--replicaset $NAMESPACE/$WORKLOAD"
     else
         echo "unknown kind: $_KIND" >&2
         exit 1
@@ -145,14 +157,16 @@ _restore() {
 }
 
 _COMMAND="$1"
-shift
 if [ "$_COMMAND" = "kopia" ]; then
+    shift
     _kopia "$@"
     exit $?
 elif [ "$_COMMAND" = "backup" ]; then
+    shift
     _backup "$@"
     exit $?
 elif [ "$_COMMAND" = "restore" ]; then
+    shift
     _restore "$@"
     exit $?
 else
