@@ -122,6 +122,10 @@ _restore() {
         echo "workload not supplied" >&2
         exit 1
     fi
+    if [ "$FROM" = "" ]; then
+        echo "from not supplied" >&2
+        exit 1
+    fi
     if [ "$NAMESPACE" = "" ]; then
         NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
         if [ "$NAMESPACE" = "" ]; then
@@ -145,12 +149,12 @@ _restore() {
         exit 1
     fi
     kanctl create actionset \
-        $_NAMESPACE_ARG \
+        --namespace "$KANISTER_NAMESPACE" \
+        --blueprint "$_BLUEPRINT_NAME" \
         $_STATEFULSET_ARG \
         $_DEPLOYMENT_ARG \
         $_DAEMONSET_ARG \
         $_REPLICASET_ARG \
-        --blueprint "$_BLUEPRINT_NAME" \
         --profile "$PROFILE" \
         --action restore \
         --from "$FROM" "$@"
