@@ -75,6 +75,16 @@ _backup() {
             _NAMESPACE="$1"
             shift
             ;;
+        -x | --kopia-password)
+            shift
+            _KOPIA_PASSWORD="$1"
+            shift
+            ;;
+        --prefix)
+            shift
+            _PREFIX="$1"
+            shift
+            ;;
         *)
             break
             ;;
@@ -123,6 +133,19 @@ _backup() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
+    _OPTIONS=""
+    if [ "$_KOPIA_PASSWORD" != "" ]; then
+        _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD"
+    fi
+    if [ "$_PREFIX" != "" ]; then
+        _OPTIONS="$_OPTIONS,prefix=$_PREFIX"
+    fi
+    if [ "$_OPTIONS" != "" ]; then
+        if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
+            _OPTIONS=$(echo $_OPTIONS | cut -c2-)
+        fi
+        _OPTIONS_ARG="--options $_OPTIONS"
+    fi
     if [ "$_DRY" = "1" ]; then
         _DRY_RUN_ARG="--dry-run"
         echo kanctl create actionset \
@@ -132,6 +155,7 @@ _backup() {
             $_DEPLOYMENT_ARG \
             $_DAEMONSET_ARG \
             $_REPLICASET_ARG \
+            $_OPTIONS_ARG \
             --profile "$_PROFILE" \
             --action backup "$@"
     fi
@@ -143,6 +167,7 @@ _backup() {
         $_DEPLOYMENT_ARG \
         $_DAEMONSET_ARG \
         $_REPLICASET_ARG \
+        $_OPTIONS_ARG \
         --profile "$_PROFILE" \
         --action backup "$@"
 }
@@ -172,6 +197,16 @@ _restore() {
         -f | --from)
             shift
             _FROM="$1"
+            shift
+            ;;
+        -x | --kopia-password)
+            shift
+            _KOPIA_PASSWORD="$1"
+            shift
+            ;;
+        --prefix)
+            shift
+            _PREFIX="$1"
             shift
             ;;
         *)
@@ -225,6 +260,19 @@ _restore() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
+    _OPTIONS=""
+    if [ "$_KOPIA_PASSWORD" != "" ]; then
+        _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD"
+    fi
+    if [ "$_PREFIX" != "" ]; then
+        _OPTIONS="$_OPTIONS,prefix=$_PREFIX"
+    fi
+    if [ "$_OPTIONS" != "" ]; then
+        if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
+            _OPTIONS=$(echo $_OPTIONS | cut -c2-)
+        fi
+        _OPTIONS_ARG="--options $_OPTIONS"
+    fi
     if [ "$_DRY" = "1" ]; then
         _DRY_RUN_ARG="--dry-run"
         kanctl create actionset \
@@ -234,6 +282,7 @@ _restore() {
             $_DEPLOYMENT_ARG \
             $_DAEMONSET_ARG \
             $_REPLICASET_ARG \
+            $_OPTIONS_ARG \
             --profile "$_PROFILE" \
             --action restore \
             --from "$_FROM" "$@"
@@ -263,10 +312,12 @@ _backup_help() {
     echo "Usage: kanukopia [OPTIONS] backup [ARGUMENTS] <BLUEPRINT>
 
 [ARGUMENTS]:
-    -h, --help        show help
-    -p, --profile     profile name
-    -w, --workload    workload name
-    -n, --namespace   namespace name
+    -h, --help           show help
+    -p, --profile        profile name
+    -w, --workload       workload name
+    -n, --namespace      namespace name
+    -x, --kopia-password kopia password
+    --prefix             kopia prefix
 
 <BLUEPRINT>: blueprint name"
 }
@@ -275,11 +326,13 @@ _restore_help() {
     echo "Usage: kanukopia [OPTIONS] restore [ARGUMENTS] <BLUEPRINT>
 
 [ARGUMENTS]:
-    -h, --help        show help
-    -p, --profile     profile name
-    -w, --workload    workload name
-    -n, --namespace   namespace name
-    -f, --from        actionset name to restore from
+    -h, --help           show help
+    -p, --profile        profile name
+    -w, --workload       workload name
+    -n, --namespace      namespace name
+    -x, --kopia-password kopia password
+    -f, --from           actionset name to restore from
+    --prefix             kopia prefix
 
 <BLUEPRINT>: blueprint name"
 }
