@@ -204,6 +204,16 @@ _restore() {
             _KOPIA_PASSWORD="$1"
             shift
             ;;
+        -r | --kopia-root)
+            shift
+            _KOPIA_ROOT="$1"
+            shift
+            ;;
+        -t | --snapshot-time)
+            shift
+            _SNAPSHOT_TIME="$1"
+            shift
+            ;;
         --prefix)
             shift
             _PREFIX="$1"
@@ -266,6 +276,12 @@ _restore() {
     fi
     if [ "$_PREFIX" != "" ]; then
         _OPTIONS="$_OPTIONS,prefix=$_PREFIX"
+    fi
+    if [ "$_KOPIA_ROOT" != "" ]; then
+        _OPTIONS="$_OPTIONS,kopiaRoot=$_KOPIA_ROOT"
+    fi
+    if [ "$_SNAPSHOT_TIME" != "" ]; then
+        _OPTIONS="$_OPTIONS,snapshotTime=$_SNAPSHOT_TIME"
     fi
     if [ "$_OPTIONS" != "" ]; then
         if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
@@ -331,6 +347,8 @@ _restore_help() {
     -w, --workload       workload name
     -n, --namespace      namespace name
     -x, --kopia-password kopia password
+    -r, --kopia-root     kopia root
+    -t, --snapshot-time  snapshot time
     -f, --from           actionset name to restore from
     --prefix             kopia prefix
 
