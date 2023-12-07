@@ -133,19 +133,11 @@ _backup() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
-    _OPTIONS=""
-    if [ "$_KOPIA_PASSWORD" != "" ]; then
-        _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD"
+    _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD,prefix=$_PREFIX"
+    if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
+        _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi
-    if [ "$_PREFIX" != "" ]; then
-        _OPTIONS="$_OPTIONS,prefix=$_PREFIX"
-    fi
-    if [ "$_OPTIONS" != "" ]; then
-        if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
-            _OPTIONS=$(echo $_OPTIONS | cut -c2-)
-        fi
-        _OPTIONS_ARG="--options $_OPTIONS"
-    fi
+    _OPTIONS_ARG="--options $_OPTIONS"
     if [ "$_DRY" = "1" ]; then
         _DRY_RUN_ARG="--dry-run"
         echo kanctl create actionset \
@@ -249,8 +241,9 @@ _restore() {
         exit 1
     fi
     _KANISTER_BLUEPRINT="$_NAMESPACE.$_BLUEPRINT"
-    if [ "$_FROM" != "" ]; then
-        _FROM_ARG="--from $_FROM"
+    if [ "$_FROM" = "" ]; then
+        echo "from not supplied" >&2
+        exit 1
     fi
     _KIND="$(kubectl get blueprints.cr.kanister.io "$_BLUEPRINT" -n "$_NAMESPACE" -o jsonpath='{.actions.backup.kind}')"
     _KIND="$(echo "$_KIND" | tr '[:upper:]' '[:lower:]')"
@@ -270,28 +263,14 @@ _restore() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
-    _OPTIONS=""
-    if [ "$_KOPIA_PASSWORD" != "" ]; then
-        _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD"
+    _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD,prefix=$_PREFIX,kopiaRoot=$_KOPIA_ROOT,snapshotTime=$_SNAPSHOT_TIME"
+    if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
+        _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi
-    if [ "$_PREFIX" != "" ]; then
-        _OPTIONS="$_OPTIONS,prefix=$_PREFIX"
-    fi
-    if [ "$_KOPIA_ROOT" != "" ]; then
-        _OPTIONS="$_OPTIONS,kopiaRoot=$_KOPIA_ROOT"
-    fi
-    if [ "$_SNAPSHOT_TIME" != "" ]; then
-        _OPTIONS="$_OPTIONS,snapshotTime=$_SNAPSHOT_TIME"
-    fi
-    if [ "$_OPTIONS" != "" ]; then
-        if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
-            _OPTIONS=$(echo $_OPTIONS | cut -c2-)
-        fi
-        _OPTIONS_ARG="--options $_OPTIONS"
-    fi
+    _OPTIONS_ARG="--options $_OPTIONS"
     if [ "$_DRY" = "1" ]; then
         _DRY_RUN_ARG="--dry-run"
-        kanctl create actionset \
+        echo kanctl create actionset \
             --namespace "$KANISTER_NAMESPACE" \
             --blueprint "$_KANISTER_BLUEPRINT" \
             $_STATEFULSET_ARG \
@@ -311,6 +290,7 @@ _restore() {
         $_DEPLOYMENT_ARG \
         $_DAEMONSET_ARG \
         $_REPLICASET_ARG \
+        $_OPTIONS_ARG \
         --profile "$_PROFILE" \
         --action restore \
         --from "$_FROM" "$@"
