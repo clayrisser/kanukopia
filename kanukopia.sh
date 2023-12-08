@@ -241,10 +241,6 @@ _restore() {
         exit 1
     fi
     _KANISTER_BLUEPRINT="$_NAMESPACE.$_BLUEPRINT"
-    if [ "$_FROM" = "" ]; then
-        echo "from not supplied" >&2
-        exit 1
-    fi
     _KIND="$(kubectl get blueprints.cr.kanister.io "$_BLUEPRINT" -n "$_NAMESPACE" -o jsonpath='{.actions.backup.kind}')"
     _KIND="$(echo "$_KIND" | tr '[:upper:]' '[:lower:]')"
     if [ "$_KIND" = "" ]; then
