@@ -70,6 +70,11 @@ _backup() {
             _KOPIA_PASSWORD="$1"
             shift
             ;;
+        -o | --options)
+            shift
+            _OPTIONS="$1"
+            shift
+            ;;
         --prefix)
             shift
             _PREFIX="$1"
@@ -194,6 +199,11 @@ _restore() {
         -t | --snapshot-time)
             shift
             _SNAPSHOT_TIME="$1"
+            shift
+            ;;
+        -o | --options)
+            shift
+            _OPTIONS="$1"
             shift
             ;;
         --prefix)
@@ -349,6 +359,7 @@ _backup_help() {
     -w, --workload       workload name
     -n, --namespace      namespace name
     -x, --kopia-password kopia password
+    -o, --options        options
     --prefix             kopia prefix
 
 <BLUEPRINT>: blueprint name"
@@ -365,6 +376,7 @@ _restore_help() {
     -x, --kopia-password kopia password
     -r, --kopia-root     kopia root
     -t, --snapshot-time  snapshot time
+    -o, --options        options
     -f, --from           actionset name to restore from
     --prefix             kopia prefix
 
