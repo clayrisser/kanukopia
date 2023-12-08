@@ -1,3 +1,4 @@
+kando
 kanister
 kanukopia
 kopia
