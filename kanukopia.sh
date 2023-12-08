@@ -9,16 +9,6 @@ if [ "$HOME" = "" ] || [ "$HOME" = "/" ]; then
 fi
 KANISTER_NAMESPACE="${KANISTER_NAMESPACE:-kanister}"
 
-_main() {
-    if [ "$_COMMAND" = "kopia" ]; then
-        _kopia "$@"
-    elif [ "$_COMMAND" = "backup" ]; then
-        _backup "$@"
-    elif [ "$_COMMAND" = "restore" ]; then
-        _restore "$@"
-    fi
-}
-
 _kopia() {
     if [ "$PROFILE_JSON" = "" ]; then
         echo "profile json not supplied" >&2
@@ -298,6 +288,50 @@ _restore() {
         $_FROM_ARG "$@"
 }
 
+_find_snapshot() {
+    _CURRENT_TIMESTAMP="$1"
+    if [ "$_CURRENT_TIMESTAMP" = "" ]; then
+        _CURRENT_TIMESTAMP=$(date +"%s")
+    else
+        if echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            _CURRENT_TIMESTAMP=$(date -d"$_CURRENT_TIMESTAMP 00:00:00 UTC" +"%s")
+        elif echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'; then
+            _CURRENT_TIMESTAMP=$(date -d"$_CURRENT_TIMESTAMP UTC" +"%s")
+        elif echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC[+-][0-9]{1,2}$'; then
+            _CURRENT_TIMESTAMP=$(date -d"$_CURRENT_TIMESTAMP" +"%s")
+        elif echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]+$'; then
+            _CURRENT_TIMESTAMP="$_CURRENT_TIMESTAMP"
+        else
+            echo "'$_CURRENT_TIMESTAMP' is an invalid timestamp format" >&2
+            exit 1
+        fi
+    fi
+    echo "finding latest snapshot prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
+    _ROOT_ID="$(_kopia snapshot list --all --json | _filter_snapshot "$_CURRENT_TIMESTAMP")"
+    if [ "$_ROOT_ID" = "" ]; then
+        echo "no snapshot found prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
+        exit 1
+    fi
+    echo "$_ROOT_ID"
+}
+
+_filter_snapshot() {
+    _CURRENT_TIMESTAMP="$1"
+    if [ "$_CURRENT_TIMESTAMP" = "" ]; then
+        echo "current timestamp not supplied" >&2
+        exit 1
+    fi
+    jq -c 'sort_by(.startTime) | reverse | .[]' | while IFS= read -r _OBJECT; do
+        _ID=$(echo "$_OBJECT" | jq -r '.id')
+        _START_TIME=$(echo "$_OBJECT" | jq -r '.startTime')
+        _TIMESTAMP=$(date -d "$_START_TIME" +"%s")
+        if [ "$_TIMESTAMP" -le "$_CURRENT_TIMESTAMP" ]; then
+            echo "$_ID"
+            return
+        fi
+    done
+}
+
 _exec() {
     if [ "$_DRY" = "1" ]; then
         echo "$@"
@@ -348,7 +382,8 @@ _help() {
 <COMMAND>:
     k, kopia      run kopia command
     b, backup     run backup action
-    r, restore    run restore action"
+    r, restore    run restore action
+    find-snapshot find snapshot"
 }
 
 while test $# -gt 0; do
@@ -374,20 +409,22 @@ done
 case "$1" in
     k | kopia)
         shift
-        export _COMMAND=kopia
+        _kopia "$@"
         ;;
     b | backup)
         shift
-        export _COMMAND=backup
+        _backup "$@"
         ;;
     r | restore)
         shift
-        export _COMMAND=restore
+        _restore "$@"
+        ;;
+    find-snapshot)
+        shift
+        _find_snapshot "$@"
         ;;
     *)
         _help
         exit
         ;;
 esac
-
-_main "$@"
