@@ -268,6 +268,12 @@ _restore() {
         _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi
     _OPTIONS_ARG="--options $_OPTIONS"
+    if [ "$_FROM" = "" ]; then
+        _ACTION="restore"
+    else
+        _FROM_ARG="--from $_FROM"
+        _ACTION="restorefrom"
+    fi
     if [ "$_DRY" = "1" ]; then
         _DRY_RUN_ARG="--dry-run"
         echo kanctl create actionset \
@@ -279,8 +285,8 @@ _restore() {
             $_REPLICASET_ARG \
             $_OPTIONS_ARG \
             --profile "$_PROFILE" \
-            --action restore \
-            --from "$_FROM" "$@"
+            --action "$_ACTION" \
+            $_FROM_ARG "$@"
     fi
     kanctl create actionset \
         --namespace "$KANISTER_NAMESPACE" \
@@ -292,8 +298,8 @@ _restore() {
         $_REPLICASET_ARG \
         $_OPTIONS_ARG \
         --profile "$_PROFILE" \
-        --action restore \
-        --from "$_FROM" "$@"
+        --action "$_ACTION" \
+        $_FROM_ARG "$@"
 }
 
 _exec() {
