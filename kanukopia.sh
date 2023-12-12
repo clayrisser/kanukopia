@@ -103,7 +103,7 @@ _backup() {
         exit 1
     fi
     if [ "$_WORKLOAD" = "" ]; then
-        _WORKLOAD="$(kubectl get plugs.integration.rock8s.com kanister-${_BLUEPRINT} -n b-openldap -o jsonpath='{.spec.config.workload}')"
+        _WORKLOAD="$(kubectl get plugs.integration.rock8s.com kanister-${_BLUEPRINT} -n "$_NAMESPACE" -o jsonpath='{.spec.config.workload}')"
     fi
     if [ "$_WORKLOAD" = "" ]; then
         echo "workload not supplied" >&2
@@ -234,7 +234,7 @@ _restore() {
         exit 1
     fi
     if [ "$_WORKLOAD" = "" ]; then
-        _WORKLOAD="$(kubectl get plugs.integration.rock8s.com kanister-${_BLUEPRINT} -n b-openldap -o jsonpath='{.spec.config.workload}')"
+        _WORKLOAD="$(kubectl get plugs.integration.rock8s.com kanister-${_BLUEPRINT} -n "$_NAMESPACE" -o jsonpath='{.spec.config.workload}')"
     fi
     if [ "$_WORKLOAD" = "" ]; then
         echo "workload not supplied" >&2
