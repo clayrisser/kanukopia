@@ -144,6 +144,7 @@ _backup() {
             $_REPLICASET_ARG \
             $_OPTIONS_ARG \
             --profile "$_PROFILE" \
+            --name "${_ACTION}-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
             --action backup "$@"
     fi
     kanctl create actionset \
@@ -156,6 +157,7 @@ _backup() {
         $_REPLICASET_ARG \
         $_OPTIONS_ARG \
         --profile "$_PROFILE" \
+        --name "${_ACTION}-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
         --action backup "$@"
 }
 
@@ -282,6 +284,7 @@ _restore() {
             $_OPTIONS_ARG \
             --profile "$_PROFILE" \
             --action "$_ACTION" \
+            --name "${_ACTION}-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
             $_FROM_ARG "$@"
     fi
     kanctl create actionset \
@@ -295,6 +298,7 @@ _restore() {
         $_OPTIONS_ARG \
         --profile "$_PROFILE" \
         --action "$_ACTION" \
+        --name "${_ACTION}-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
         $_FROM_ARG "$@"
 }
 
