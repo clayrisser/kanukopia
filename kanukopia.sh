@@ -144,7 +144,7 @@ _backup() {
             $_REPLICASET_ARG \
             $_OPTIONS_ARG \
             --profile "$_PROFILE" \
-            --name "${_ACTION}-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
+            --name "backup-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
             --action backup "$@"
     fi
     kanctl create actionset \
@@ -157,7 +157,7 @@ _backup() {
         $_REPLICASET_ARG \
         $_OPTIONS_ARG \
         --profile "$_PROFILE" \
-        --name "${_ACTION}-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
+        --name "backup-${_NAMESPACE}-${_BLUEPRINT}-$(date +%s)" \
         --action backup "$@"
 }
 
