@@ -55,9 +55,8 @@ actions:
               cat > $BACKUP_FILE
               ###################################
 
-              kanukopia kopia snapshot create "$BACKUP_FILE"
+              SNAPSHOT="$(kanukopia restic backup --json "$BACKUP_FILE" | jq -r '.snapshots[0].id')"
               rm "$BACKUP_FILE"
-              SNAPSHOT="$(kanukopia kopia snapshot list --json -n1 "$BACKUP_FILE" | jq -r '.[0].rootEntry.obj')"
               kando output snapshot "$SNAPSHOT"
   restore:
     kind: StatefulSet
@@ -86,7 +85,7 @@ actions:
                 SNAPSHOT_TIME='{{"{{"}} .Options.snapshotTime | default "latest" | toString {{"}}"}}'
                 SNAPSHOT="$(kanukopia find-snapshot "$SNAPSHOT_TIME")"
               fi
-              kanukopia kopia snapshot restore "$SNAPSHOT" "$BACKUP_FILE"
+              kanukopia restic restore "$SNAPSHOT" --target "$BACKUP_FILE"
 
               ##### RESTORE APPLICATION HERE #####
               cat $BACKUP_FILE | cat
@@ -118,7 +117,7 @@ actions:
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
               SNAPSHOT='{{"{{"}} .ArtifactsIn.backup.KeyValue.snapshot | toString {{"}}"}}'
-              kanukopia kopia snapshot restore "$SNAPSHOT" "$BACKUP_FILE"
+              kanukopia restic restore "$SNAPSHOT" --target "$BACKUP_FILE"
 
               ##### RESTORE APPLICATION HERE #####
               cat $BACKUP_FILE | cat

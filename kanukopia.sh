@@ -330,7 +330,7 @@ _restore() {
         $_FROM_ARG "$@"
 }
 
-_find_snapshot() {
+_find_restic_snapshot() {
     _CURRENT_TIMESTAMP="$1"
     if [ "$_CURRENT_TIMESTAMP" = "" ]; then
         _CURRENT_TIMESTAMP=$(date +"%s")
@@ -349,7 +349,7 @@ _find_snapshot() {
         fi
     fi
     echo "finding latest snapshot prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
-    _SNAPSHOT="$(_kopia snapshot list --all --json | _filter_snapshot "$_CURRENT_TIMESTAMP")"
+    _SNAPSHOT="$(_restic snapshots --json | _filter_restic_snapshot "$_CURRENT_TIMESTAMP")"
     if [ "$_SNAPSHOT" = "" ]; then
         echo "no snapshot found prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
         exit 1
@@ -357,7 +357,50 @@ _find_snapshot() {
     echo "$_SNAPSHOT"
 }
 
-_filter_snapshot() {
+_filter_restic_snapshot() {
+    _CURRENT_TIMESTAMP="$1"
+    if [ "$_CURRENT_TIMESTAMP" = "" ]; then
+        echo "current timestamp not supplied" >&2
+        exit 1
+    fi
+    jq -r '[.[] | {id: .id, time: .time}] | sort_by(.time) | reverse | .[].id' | while IFS= read -r _ID; do
+        _TIME=$(_restic snapshots $_ID --json | jq -r '.[0].time')
+        _TIMESTAMP=$(date -d "$_TIME" +"%s")
+        if [ "$_TIMESTAMP" -le "$_CURRENT_TIMESTAMP" ]; then
+            echo "$_ID"
+            return
+        fi
+    done
+}
+
+_find_kopia_snapshot() {
+    _CURRENT_TIMESTAMP="$1"
+    if [ "$_CURRENT_TIMESTAMP" = "" ]; then
+        _CURRENT_TIMESTAMP=$(date +"%s")
+    else
+        if echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            _CURRENT_TIMESTAMP=$(date -d"$_CURRENT_TIMESTAMP 00:00:00 UTC" +"%s")
+        elif echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'; then
+            _CURRENT_TIMESTAMP=$(date -d"$_CURRENT_TIMESTAMP UTC" +"%s")
+        elif echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC[+-][0-9]{1,2}$'; then
+            _CURRENT_TIMESTAMP=$(date -d"$_CURRENT_TIMESTAMP" +"%s")
+        elif echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]+$'; then
+            _CURRENT_TIMESTAMP="$_CURRENT_TIMESTAMP"
+        else
+            echo "'$_CURRENT_TIMESTAMP' is an invalid timestamp format" >&2
+            exit 1
+        fi
+    fi
+    echo "finding latest snapshot prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
+    _SNAPSHOT="$(_kopia snapshot list --all --json | _filter_kopia_snapshot "$_CURRENT_TIMESTAMP")"
+    if [ "$_SNAPSHOT" = "" ]; then
+        echo "no snapshot found prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
+        exit 1
+    fi
+    echo "$_SNAPSHOT"
+}
+
+_filter_kopia_snapshot() {
     _CURRENT_TIMESTAMP="$1"
     if [ "$_CURRENT_TIMESTAMP" = "" ]; then
         echo "current timestamp not supplied" >&2
@@ -424,11 +467,12 @@ _help() {
     -d, --debug   debug mode
 
 <COMMAND>:
-    b, backup     run backup action
-    r, restore    run restore action
-    kopia         run kopia command
-    restic        run restic command
-    find-snapshot find snapshot"
+    b, backup            run backup action
+    r, restore           run restore action
+    kopia                run kopia command
+    restic               run restic command
+    find-kopia-snapshot  find kopia snapshot
+    find-restic-snapshot find restic snapshot"
 }
 
 while test $# -gt 0; do
@@ -468,9 +512,13 @@ case "$1" in
         shift
         _restore "$@"
         ;;
-    find-snapshot)
+    find-kopia-snapshot)
         shift
-        _find_snapshot "$@"
+        _find_kopia_snapshot "$@"
+        ;;
+    find-restic-snapshot)
+        shift
+        _find_restic_snapshot "$@"
         ;;
     *)
         _help
