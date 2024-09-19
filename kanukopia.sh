@@ -64,7 +64,7 @@ _restic() {
     export AWS_REGION="$(echo $PROFILE_JSON | jq -r .Location.region)"
     export RESTIC_REPOSITORY="s3:$_AWS_ENDPOINT/$_AWS_BUCKET/$PREFIX"
     export RESTIC_PASSWORD="$PASSWORD"
-    if ! _exec restic cat config &>/dev/null; then
+    if ! _exec restic cat config >/dev/null 2>&1; then
         _exec restic init
     fi
     _exec restic "$@"
@@ -487,13 +487,19 @@ while test $# -gt 0; do
     -d | --debug)
         shift
         export _DEBUG="1"
-        set -x
         ;;
     *)
         break
         ;;
     esac
 done
+
+if [ "$KANUKOPIA_DEBUG" = "1" ]; then
+    export _DEBUG="1"
+fi
+if [ "$_DEBUG" = "1" ]; then
+    set -x
+fi
 
 case "$1" in
     kopia)
