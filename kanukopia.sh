@@ -1,11 +1,14 @@
-#!/bin/sh
+#!bin/sh
+
+set -e
+set -x
 
 export TMPDIR="${TMPDIR:-/tmp}"
 if [ "$USER" = "" ]; then
-    export USER="kopia"
+    export USER="kanukopia"
 fi
 if [ "$HOME" = "" ] || [ "$HOME" = "/" ]; then
-    export HOME="$TMPDIR/kopia"
+    export HOME="$TMPDIR/kanukopia"
 fi
 KANISTER_NAMESPACE="${KANISTER_NAMESPACE:-kanister}"
 
@@ -18,8 +21,8 @@ _kopia() {
         echo "aws prefix not supplied" >&2
         exit 1
     fi
-    if [ "$KOPIA_PASSWORD" = "" ]; then
-        KOPIA_PASSWORD="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
+    if [ "$PASSWORD" = "" ]; then
+        PASSWORD="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
     fi
     _AWS_BUCKET="$(echo $PROFILE_JSON | jq -r .Location.bucket)"
     _AWS_ENDPOINT="$(echo $PROFILE_JSON | jq -r .Location.endpoint)"
@@ -30,17 +33,42 @@ _kopia() {
     if ! _exec kopia repository connect s3 \
         --bucket="$_AWS_BUCKET" \
         --endpoint="$_AWS_ENDPOINT" \
-        --password="$KOPIA_PASSWORD" \
+        --password="$PASSWORD" \
         --prefix="$PREFIX/"; then
         _exec kopia repository create s3 \
             --bucket="$_AWS_BUCKET" \
             --endpoint="$_AWS_ENDPOINT" \
-            --password="$KOPIA_PASSWORD" \
+            --password="$PASSWORD" \
             --prefix="$PREFIX/"
     fi
     _exec kopia "$@"
     _exec kopia repository disconnect
     _exec rm -rf "$HOME/.config/kopia"
+}
+
+_restic() {
+    if [ "$PROFILE_JSON" = "" ]; then
+        echo "profile json not supplied" >&2
+        exit 1
+    fi
+    if [ "$PREFIX" = "" ]; then
+        echo "aws prefix not supplied" >&2
+        exit 1
+    fi
+    if [ "$PASSWORD" = "" ]; then
+        PASSWORD="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
+    fi
+    _AWS_BUCKET="$(echo $PROFILE_JSON | jq -r .Location.bucket)"
+    _AWS_ENDPOINT="$(echo $PROFILE_JSON | jq -r .Location.endpoint)"
+    export AWS_ACCESS_KEY_ID="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
+    export AWS_SECRET_ACCESS_KEY="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.Secret)"
+    export AWS_REGION="$(echo $PROFILE_JSON | jq -r .Location.region)"
+    export RESTIC_REPOSITORY="s3:$_AWS_ENDPOINT/$_AWS_BUCKET/$PREFIX"
+    export RESTIC_PASSWORD="$PASSWORD"
+    if ! _exec restic snapshots &>/dev/null; then
+        _exec restic init
+    fi
+    _exec restic "$@"
 }
 
 _backup() {
@@ -65,9 +93,9 @@ _backup() {
             _NAMESPACE="$1"
             shift
             ;;
-        -x | --kopia-password)
+        -x | --password)
             shift
-            _KOPIA_PASSWORD="$1"
+            _PASSWORD="$1"
             shift
             ;;
         -o | --options)
@@ -128,7 +156,7 @@ _backup() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
-    _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD,prefix=$_PREFIX"
+    _OPTIONS="$_OPTIONS,password=$_PASSWORD,prefix=$_PREFIX"
     if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
         _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi
@@ -188,14 +216,14 @@ _restore() {
             _FROM="$1"
             shift
             ;;
-        -x | --kopia-password)
+        -x | --password)
             shift
-            _KOPIA_PASSWORD="$1"
+            _PASSWORD="$1"
             shift
             ;;
-        -r | --kopia-root)
+        -s | --snapshot)
             shift
-            _KOPIA_ROOT="$1"
+            _SNAPSHOT="$1"
             shift
             ;;
         -t | --snapshot-time)
@@ -261,7 +289,7 @@ _restore() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
-    _OPTIONS="$_OPTIONS,kopiaPassword=$_KOPIA_PASSWORD,prefix=$_PREFIX,kopiaRoot=$_KOPIA_ROOT,snapshotTime=$_SNAPSHOT_TIME"
+    _OPTIONS="$_OPTIONS,password=$_PASSWORD,prefix=$_PREFIX,snapshot=$_SNAPSHOT,snapshotTime=$_SNAPSHOT_TIME"
     if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
         _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi
@@ -321,12 +349,12 @@ _find_snapshot() {
         fi
     fi
     echo "finding latest snapshot prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
-    _ROOT_ID="$(_kopia snapshot list --all --json | _filter_snapshot "$_CURRENT_TIMESTAMP")"
-    if [ "$_ROOT_ID" = "" ]; then
+    _SNAPSHOT="$(_kopia snapshot list --all --json | _filter_snapshot "$_CURRENT_TIMESTAMP")"
+    if [ "$_SNAPSHOT" = "" ]; then
         echo "no snapshot found prior to $(date -u -d @$_CURRENT_TIMESTAMP +"%Y-%m-%d %H:%M:%S %Z")" >&2
         exit 1
     fi
-    echo "$_ROOT_ID"
+    echo "$_SNAPSHOT"
 }
 
 _filter_snapshot() {
@@ -362,9 +390,9 @@ _backup_help() {
     -p, --profile        profile name
     -w, --workload       workload name
     -n, --namespace      namespace name
-    -x, --kopia-password kopia password
+    -x, --password       password
     -o, --options        options
-    --prefix             kopia prefix
+    --prefix             prefix
 
 <BLUEPRINT>: blueprint name"
 }
@@ -377,12 +405,12 @@ _restore_help() {
     -p, --profile        profile name
     -w, --workload       workload name
     -n, --namespace      namespace name
-    -x, --kopia-password kopia password
-    -r, --kopia-root     kopia root
+    -x, --password       password
+    -s, --snapshot       snapshot
     -t, --snapshot-time  snapshot time
     -o, --options        options
     -f, --from           actionset name to restore from
-    --prefix             kopia prefix
+    --prefix             prefix
 
 <BLUEPRINT>: blueprint name"
 }
@@ -396,9 +424,10 @@ _help() {
     -d, --debug   debug mode
 
 <COMMAND>:
-    k, kopia      run kopia command
     b, backup     run backup action
     r, restore    run restore action
+    kopia         run kopia command
+    restic        run restic command
     find-snapshot find snapshot"
 }
 
@@ -423,9 +452,13 @@ while test $# -gt 0; do
 done
 
 case "$1" in
-    k | kopia)
+    kopia)
         shift
         _kopia "$@"
+        ;;
+    restic)
+        shift
+        _restic "$@"
         ;;
     b | backup)
         shift

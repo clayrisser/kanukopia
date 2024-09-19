@@ -28,7 +28,7 @@ actions:
     outputArtifacts:
       backup:
         keyValue:
-          kopiaRoot: "{{"{{"}} .Phases.backup.Output.kopiaRoot {{"}}"}}"
+          snapshot: "{{"{{"}} .Phases.backup.Output.snapshot {{"}}"}}"
           rootDN: "{{"{{"}} .Phases.backup.Output.rootDN {{"}}"}}"
     phases:
       - func: KubeTask
@@ -46,7 +46,7 @@ actions:
             - -c
             - |
               BACKUP_FILE=application.backup
-              export KOPIA_PASSWORD='{{"{{"}} .Options.kopiaPassword | default "" | toString {{"}}"}}'
+              export PASSWORD='{{"{{"}} .Options.password | default "" | toString {{"}}"}}'
               export PREFIX='{{"{{"}} .Options.prefix | default "{{ .Release.Namespace }}/{{ template "<<APPLICATION>>.name" . }}" | toString {{"}}"}}'
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
@@ -57,8 +57,8 @@ actions:
 
               kanukopia kopia snapshot create "$BACKUP_FILE"
               rm "$BACKUP_FILE"
-              KOPIA_ROOT="$(kanukopia kopia snapshot list --json -n1 "$BACKUP_FILE" | jq -r '.[0].rootEntry.obj')"
-              kando output kopiaRoot "$KOPIA_ROOT"
+              SNAPSHOT="$(kanukopia kopia snapshot list --json -n1 "$BACKUP_FILE" | jq -r '.[0].rootEntry.obj')"
+              kando output snapshot "$SNAPSHOT"
   restore:
     kind: StatefulSet
     phases:
@@ -77,16 +77,16 @@ actions:
             - -c
             - |
               BACKUP_FILE=application.backup
-              export KOPIA_PASSWORD='{{"{{"}} .Options.kopiaPassword | default "" | toString {{"}}"}}'
+              export PASSWORD='{{"{{"}} .Options.password | default "" | toString {{"}}"}}'
               export PREFIX='{{"{{"}} .Options.prefix | default "{{ .Release.Namespace }}/{{ template "<<APPLICATION>>.name" . }}" | toString {{"}}"}}'
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
-              KOPIA_ROOT='{{"{{"}} .Options.kopiaRoot | default "" | toString {{"}}"}}'
-              if [ "$KOPIA_ROOT" = "" ]; then
+              SNAPSHOT='{{"{{"}} .Options.snapshot | default "" | toString {{"}}"}}'
+              if [ "$SNAPSHOT" = "" ]; then
                 SNAPSHOT_TIME='{{"{{"}} .Options.snapshotTime | default "latest" | toString {{"}}"}}'
-                KOPIA_ROOT="$(kanukopia find-snapshot "$SNAPSHOT_TIME")"
+                SNAPSHOT="$(kanukopia find-snapshot "$SNAPSHOT_TIME")"
               fi
-              kanukopia kopia snapshot restore "$KOPIA_ROOT" "$BACKUP_FILE"
+              kanukopia kopia snapshot restore "$SNAPSHOT" "$BACKUP_FILE"
 
               ##### RESTORE APPLICATION HERE #####
               cat $BACKUP_FILE | cat
@@ -113,12 +113,12 @@ actions:
             - -c
             - |
               BACKUP_FILE=application.backup
-              export KOPIA_PASSWORD='{{"{{"}} .Options.kopiaPassword | default "" | toString {{"}}"}}'
+              export PASSWORD='{{"{{"}} .Options.password | default "" | toString {{"}}"}}'
               export PREFIX='{{"{{"}} .Options.prefix | default "{{ .Release.Namespace }}/{{ template "<<APPLICATION>>.name" . }}" | toString {{"}}"}}'
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
-              KOPIA_ROOT='{{"{{"}} .ArtifactsIn.backup.KeyValue.kopiaRoot | toString {{"}}"}}'
-              kanukopia kopia snapshot restore "$KOPIA_ROOT" "$BACKUP_FILE"
+              SNAPSHOT='{{"{{"}} .ArtifactsIn.backup.KeyValue.snapshot | toString {{"}}"}}'
+              kanukopia kopia snapshot restore "$SNAPSHOT" "$BACKUP_FILE"
 
               ##### RESTORE APPLICATION HERE #####
               cat $BACKUP_FILE | cat
