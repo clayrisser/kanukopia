@@ -64,7 +64,7 @@ _restic() {
     export AWS_REGION="$(echo $PROFILE_JSON | jq -r .Location.region)"
     export RESTIC_REPOSITORY="s3:$_AWS_ENDPOINT/$_AWS_BUCKET/$PREFIX"
     export RESTIC_PASSWORD="$PASSWORD"
-    if ! _exec restic snapshots &>/dev/null; then
+    if ! _exec restic cat config &>/dev/null; then
         _exec restic init
     fi
     _exec restic "$@"
