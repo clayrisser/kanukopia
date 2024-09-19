@@ -155,7 +155,7 @@ _backup() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
-    _OPTIONS="$_OPTIONS,password=$_PASSWORD,prefix=$_PREFIX"
+    _OPTIONS="$_OPTIONS,password=$_PASSWORD,prefix=$_PREFIX,debug=$_DEBUG"
     if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
         _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi
@@ -288,7 +288,7 @@ _restore() {
         echo "unknown kind: $_KIND" >&2
         exit 1
     fi
-    _OPTIONS="$_OPTIONS,password=$_PASSWORD,prefix=$_PREFIX,snapshot=$_SNAPSHOT,snapshotTime=$_SNAPSHOT_TIME"
+    _OPTIONS="$_OPTIONS,password=$_PASSWORD,prefix=$_PREFIX,snapshot=$_SNAPSHOT,snapshotTime=$_SNAPSHOT_TIME,debug=$_DEBUG"
     if [ "$(echo -n "$_OPTIONS" | head -c1)" = "," ]; then
         _OPTIONS=$(echo $_OPTIONS | cut -c2-)
     fi

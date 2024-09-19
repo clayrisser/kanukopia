@@ -48,6 +48,7 @@ actions:
               BACKUP_FILE=application.backup
               export PASSWORD='{{"{{"}} .Options.password | default "" | toString {{"}}"}}'
               export PREFIX='{{"{{"}} .Options.prefix | default "{{ .Release.Namespace }}/{{ template "<<APPLICATION>>.name" . }}" | toString {{"}}"}}'
+              export KANUKOPIA_DEBUG='{{"{{"}} .Options.debug | default "" | toString {{"}}"}}'
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
 
@@ -78,6 +79,7 @@ actions:
               BACKUP_FILE=application.backup
               export PASSWORD='{{"{{"}} .Options.password | default "" | toString {{"}}"}}'
               export PREFIX='{{"{{"}} .Options.prefix | default "{{ .Release.Namespace }}/{{ template "<<APPLICATION>>.name" . }}" | toString {{"}}"}}'
+              export KANUKOPIA_DEBUG='{{"{{"}} .Options.debug | default "" | toString {{"}}"}}'
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
               SNAPSHOT='{{"{{"}} .Options.snapshot | default "" | toString {{"}}"}}'
@@ -114,6 +116,7 @@ actions:
               BACKUP_FILE=application.backup
               export PASSWORD='{{"{{"}} .Options.password | default "" | toString {{"}}"}}'
               export PREFIX='{{"{{"}} .Options.prefix | default "{{ .Release.Namespace }}/{{ template "<<APPLICATION>>.name" . }}" | toString {{"}}"}}'
+              export KANUKOPIA_DEBUG='{{"{{"}} .Options.debug | default "" | toString {{"}}"}}'
               export PROFILE_JSON='{{"{{"}} toJson .Profile {{"}}"}}'
               rm "$BACKUP_FILE" 2>/dev/null || true
               SNAPSHOT='{{"{{"}} .ArtifactsIn.backup.KeyValue.snapshot | toString {{"}}"}}'
