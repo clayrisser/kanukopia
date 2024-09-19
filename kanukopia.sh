@@ -1,7 +1,6 @@
-#!bin/sh
+#!/bin/sh
 
 set -e
-set -x
 
 export TMPDIR="${TMPDIR:-/tmp}"
 if [ "$USER" = "" ]; then
@@ -488,6 +487,7 @@ while test $# -gt 0; do
     -d | --debug)
         shift
         export _DEBUG="1"
+        set -x
         ;;
     *)
         break
