@@ -21,14 +21,14 @@ _kopia() {
         exit 1
     fi
     if [ "$PASSWORD" = "" ]; then
-        PASSWORD="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
+        PASSWORD="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.ID)"
     fi
-    _AWS_BUCKET="$(echo $PROFILE_JSON | jq -r .Location.bucket)"
-    _AWS_ENDPOINT="$(echo $PROFILE_JSON | jq -r .Location.endpoint)"
+    _AWS_BUCKET="$(echo "$PROFILE_JSON" | jq -r .Location.bucket)"
+    _AWS_ENDPOINT="$(echo "$PROFILE_JSON" | jq -r .Location.endpoint)"
     export KOPIA_CHECK_FOR_UPDATES="false"
-    export AWS_ACCESS_KEY_ID="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
-    export AWS_SECRET_ACCESS_KEY="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.Secret)"
-    export AWS_REGION="$(echo $PROFILE_JSON | jq -r .Location.region)"
+    export AWS_ACCESS_KEY_ID="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.ID)"
+    export AWS_SECRET_ACCESS_KEY="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.Secret)"
+    export AWS_REGION="$(echo "$PROFILE_JSON" | jq -r .Location.region)"
     if ! _exec kopia repository connect s3 \
         --bucket="$_AWS_BUCKET" \
         --endpoint="$_AWS_ENDPOINT" \
@@ -55,13 +55,13 @@ _restic() {
         exit 1
     fi
     if [ "$PASSWORD" = "" ]; then
-        PASSWORD="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
+        PASSWORD="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.ID)"
     fi
-    _AWS_BUCKET="$(echo $PROFILE_JSON | jq -r .Location.bucket)"
-    _AWS_ENDPOINT="$(echo $PROFILE_JSON | jq -r .Location.endpoint)"
-    export AWS_ACCESS_KEY_ID="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.ID)"
-    export AWS_SECRET_ACCESS_KEY="$(echo $PROFILE_JSON | jq -r .Credential.KeyPair.Secret)"
-    export AWS_REGION="$(echo $PROFILE_JSON | jq -r .Location.region)"
+    _AWS_BUCKET="$(echo "$PROFILE_JSON" | jq -r .Location.bucket)"
+    _AWS_ENDPOINT="$(echo "$PROFILE_JSON" | jq -r .Location.endpoint)"
+    export AWS_ACCESS_KEY_ID="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.ID)"
+    export AWS_SECRET_ACCESS_KEY="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.Secret)"
+    export AWS_REGION="$(echo "$PROFILE_JSON" | jq -r .Location.region)"
     export RESTIC_REPOSITORY="s3:$_AWS_ENDPOINT/$_AWS_BUCKET/$PREFIX"
     export RESTIC_PASSWORD="$PASSWORD"
     if ! _exec restic cat config >/dev/null 2>&1; then
