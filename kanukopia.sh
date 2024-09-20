@@ -58,12 +58,19 @@ _restic() {
         PASSWORD="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.ID)"
     fi
     _AWS_BUCKET="$(echo "$PROFILE_JSON" | jq -r .Location.bucket)"
+    echo AWS_BUCKET "$_AWS_BUCKET"
     _AWS_ENDPOINT="$(echo "$PROFILE_JSON" | jq -r .Location.endpoint)"
+    echo AWS_ENDPOINT "$_AWS_ENDPOINT"
     export AWS_ACCESS_KEY_ID="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.ID)"
+    echo AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
     export AWS_SECRET_ACCESS_KEY="$(echo "$PROFILE_JSON" | jq -r .Credential.KeyPair.Secret)"
+    echo AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
     export AWS_REGION="$(echo "$PROFILE_JSON" | jq -r .Location.region)"
+    echo AWS_REGION "$AWS_REGION"
     export RESTIC_REPOSITORY="s3:$_AWS_ENDPOINT/$_AWS_BUCKET/$PREFIX"
+    echo RESTIC_REPOSITORY "$RESTIC_REPOSITORY"
     export RESTIC_PASSWORD="$PASSWORD"
+    echo RESTIC_PASSWORD "$RESTIC_PASSWORD"
     if ! _exec restic cat config >/dev/null 2>&1; then
         _exec restic init
     fi
