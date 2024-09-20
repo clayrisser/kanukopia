@@ -494,12 +494,15 @@ while test $# -gt 0; do
     esac
 done
 
+echo "KANUKOPIA_DEBUG: $KANUKOPIA_DEBUG"
+
 if [ "$KANUKOPIA_DEBUG" = "1" ]; then
     export _DEBUG="1"
 fi
 if [ "$_DEBUG" = "1" ]; then
     set -x
 fi
+echo "DEBUG: $_DEBUG"
 
 case "$1" in
     kopia)
