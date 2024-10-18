@@ -1,0 +1,3 @@
+*.sql
+/profile.json
+test-*
