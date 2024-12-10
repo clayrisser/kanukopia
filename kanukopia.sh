@@ -1,7 +1,7 @@
 #!/bin/sh
 
 set -e
-
+set -x
 export TMPDIR="${TMPDIR:-/tmp}"
 if [ "$USER" = "" ]; then
     export USER="kanukopia"
@@ -299,6 +299,7 @@ _restore() {
         _FROM_ARG="--from $_FROM"
         _ACTION="restorefrom"
     fi
+
     if [ "$_DRY" = "1" ]; then
         _DRY_RUN_ARG="--dry-run"
         echo kanctl create actionset \
@@ -374,7 +375,7 @@ _filter_restic_snapshot() {
 
 _find_kopia_snapshot() {
     _CURRENT_TIMESTAMP="$1"
-    if [ "$_CURRENT_TIMESTAMP" = "" ]; then
+    if [ "$_CURRENT_TIMESTAMP" = "" ] || [ "$_CURRENT_TIMESTAMP" = "latest" ] ; then
         _CURRENT_TIMESTAMP=$(date +"%s")
     else
         if echo "$_CURRENT_TIMESTAMP" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
