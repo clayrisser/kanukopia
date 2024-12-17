@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 export TMPDIR="${TMPDIR:-/tmp}"
 if [ "$USER" = "" ]; then
     export USER="kanukopia"
